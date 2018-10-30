@@ -51,7 +51,7 @@ class interface:
         self.exibirCenter(points)
         self.exibirDirecoes()
         c = COL_HANDLER(points, self.paredes)
-        self.hit(c.hit_detection())
+        self.hit(c.cenario_hit_detection())
 
     def exibirCenter(self, vertices):
         coords = vertices
