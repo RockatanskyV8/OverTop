@@ -58,18 +58,18 @@ class Movimento:
         return xy
 
 ################################################################################COL_HANDLER
+class COL_HANDLER:
 
-    def referencia_linhas(self):
-        self.contorno = []
-        for c in range(1, len(self.vertices)):
-            self.contorno.append([self.vertices[c-1], self.vertices[c]])
-        self.contorno.append([self.vertices[-1], self.vertices[0]])
+    def __init__(self, vertices, paredes):
+        self.hitbox  = self.make_hitbox(vertices)
+        self.paredes = paredes
 
-    def mid_point(self, coordenadas):
-        a , b = coordenadas
-        mid_x = sum([x for x,y in coordenadas ])/len([x for x,y in coordenadas ])
-        mid_y = sum([y for x,y in coordenadas ])/len([y for x,y in coordenadas ])
-        return [mid_x, mid_y]
+    def make_hitbox(self, vert):
+        resultado = []
+        for c in range(1, len(vert)):
+            resultado.append([vert[c-1], vert[c]])
+        resultado.append([vert[-1], vert[0]])
+        return resultado
 
     def exists_intersection(self, line1, line2):
 
@@ -99,4 +99,13 @@ class Movimento:
                 px, py = px_a/px_b , py_a/py_b
                 resultado = [px, py]
 
+        return resultado
+
+    def cenario_hit_detection(self):
+        resultado = []
+        for p in self.paredes:
+            for lin in self.hitbox:
+                col = self.exists_intersection(lin, p)
+                if col != []:
+                    resultado.append(col)
         return resultado
