@@ -7,34 +7,34 @@ CANVAS_MID_X = WIDTH/2
 CANVAS_MID_Y = HEIGHT/2
 SIDE = WIDTH/4
 
-vertices = [
-    [CANVAS_MID_X - SIDE/2, CANVAS_MID_Y - SIDE/2],
-    [CANVAS_MID_X + SIDE/2, CANVAS_MID_Y - SIDE/2],
-    [CANVAS_MID_X + SIDE/2, CANVAS_MID_Y + SIDE/2],
-    [CANVAS_MID_X - SIDE/2, CANVAS_MID_Y + SIDE/2],
-]
-
 class interface:
 
 ################################################################################
 
-    def __init__(self, vertices):
+    def __init__(self):
         self.root   = Tk()
         self.canvas = Canvas(self.root, bg="black", height=HEIGHT, width=WIDTH)
 
-        self.controles = {'w': False,'a': False,'s': False,'d': False,'o': False,'k': False,}##
+        self.controles = {'w': False,'a': False,'s': False,'d': False,'o': False,'k': False,}
+
+        self.paredes = [ [[  0, 120],[200, 120]],[[200,  10],[200, 120]],
+                         [[300, 250],[400, 350]],[[300, 250],[400, 150]],
+                         [[  0, 350],[200, 350]],[[200, 350],[200, 400]] ]
+
+        self.vertices = [ [CANVAS_MID_X - SIDE/2, CANVAS_MID_Y - SIDE/2],
+                          [CANVAS_MID_X + SIDE/2, CANVAS_MID_Y - SIDE/2],
+                          [CANVAS_MID_X + SIDE/2, CANVAS_MID_Y + SIDE/2],
+                          [CANVAS_MID_X - SIDE/2, CANVAS_MID_Y + SIDE/2] ]
+
+        self.vertiNpc = [ [CANVAS_MID_X - SIDE/6, CANVAS_MID_Y - SIDE/6],
+                          [CANVAS_MID_X + SIDE/6, CANVAS_MID_Y - SIDE/6],
+                          [CANVAS_MID_X + SIDE/6, CANVAS_MID_Y + SIDE/6],
+                          [CANVAS_MID_X - SIDE/6, CANVAS_MID_Y + SIDE/6] ]
 
         self.direcao = [0 , 1]
-        self.c = Movimento(vertices, self.direcao)
-        self.paredes = [ [[  0, 120],[200, 120]],
-                         [[200,  10],[200, 120]],
-                         [[300, 250],[400, 350]],
-                         [[300, 250],[400, 150]],
-                         [[  0, 350],[200, 350]],
-                         [[200, 350],[200, 400]] ]
-
-        self.draw_square(self.c.vertices)
-        self.create_parede(self.paredes, fill='red', tag='parede')
+        self.c   = Movimento(self.vertices, self.direcao)
+        #self.c.posicao(300, 350)
+        self.npc = Movimento(self.vertiNpc, self.direcao)
 
         self._animate()
         self._set_bindings()
@@ -43,43 +43,31 @@ class interface:
         self.canvas.pack()
         mainloop()
 
-################################################################################ DESENHAR
+################################################################################ Player
 
-    def draw_square(self, points, color="blue", nome = "player"):
-        self.canvas.create_polygon(points, fill=color, tag=nome)
-        self.canvas.delete('bola')
-        self.exibirCenter(points)
-        self.exibirDirecoes()
-        c = COL_HANDLER(points, self.paredes)
-        self.hit(c.cenario_hit_detection())
+    def player(self, c, color="blue", nome = "player"):
+        char = c
 
-    def exibirCenter(self, vertices):
-        coords = vertices
-        for c in coords:
-            self.canvas.create_line(self.c.centroid() , c, fill="white", tag="player")
+        def exibirCenter():
+            coords = char.vertices
+            for c in coords:
+                self.canvas.create_line(char.centroid() , c, fill="white", tag="player")
 
-    def exibirDirecoes(self):
-        coords = self.c.direcao()
-        self.canvas.create_line(self.c.centroid() , coords[0], fill="yellow", tag="player")
-        self.canvas.create_line(self.c.centroid() , coords[1], fill="red"   , tag="player")
+        def exibirDirecoes():
+            coords = char.direcao()
+            self.canvas.create_line(char.centroid() , coords[0], fill="yellow", tag="player")
+            self.canvas.create_line(char.centroid() , coords[1], fill="red"   , tag="player")
+
+        self.canvas.create_polygon(char.vertices, fill=color, tag=nome)
+
+        exibirCenter()
+        exibirDirecoes()
+
+################################################################################ CENÁRIO
 
     def create_parede(self, parede, **kwargs):
         for p in parede:
             self.canvas.create_line(p, **kwargs)
-
-################################################################################ MOVIMENTACAO
-
-    def rotacionar(self, angle = 1, nome="player"):
-        self.c.rotacao(angle)
-        self.canvas.delete(nome)
-        self.draw_square(self.c.vertices)
-
-    def mover(self, orientacao, vel = 1, nome = "player"):
-        x , y = orientacao
-        self.c.mover( x * vel, y * vel )
-        self.canvas.delete(nome)
-        self.draw_square(self.c.vertices)
-
 
 ################################################################################ COLISAO
 
@@ -92,17 +80,42 @@ class interface:
                 x , y = v
                 self.create_circle(x, y, 5, fill="yellow", width=1, tag='bola')
 
-################################################################################ CONTROLES
+################################################################################ ANIMAÇÃO
 
     def _animate(self):
-        if self.controles["w"]: self.mover(self.c.orientacao(0))
-        if self.controles["a"]: self.rotacionar(-1)
-        if self.controles["s"]: self.mover(self.c.orientacao(0), -1)
-        if self.controles["d"]: self.rotacionar()
-        if self.controles["o"]: self.mover(self.c.orientacao(1))
-        if self.controles["k"]: self.mover(self.c.orientacao(1), -1)
 
-        self.root.after(30, self._animate)
+        def controles(c, keys):
+            char = c
+            x0 , y0 = char.orientacao()['Frente']
+            x1 , y1 = char.orientacao()['Lado']
+            if self.controles[ keys[0] ]: char.mover( x0 , y0 )
+            if self.controles[ keys[1] ]: char.mover( x1 * (-1), y1 * (-1) )
+            if self.controles[ keys[2] ]: char.mover( x0 * (-1), y0 * (-1) )
+            if self.controles[ keys[3] ]: char.mover( x1 , y1 )
+            if self.controles[ keys[4] ]: char.rotacao(-1)
+            if self.controles[ keys[5] ]: char.rotacao(1)
+
+        def mover_NPC():
+            self.npc.mover(-2, 0)
+            if(self.npc.centroid()[0] < 0):
+                self.npc.posicao(400, self.npc.centroid()[1])
+
+        self.canvas.delete("all")
+
+        self.player(self.c)
+        c_col = COL_HANDLER(self.c.vertices)
+        controles(self.c, ['w','a','s','d','o','k'])
+        npc_cor = "green"
+        
+        npc_col = COL_HANDLER(self.npc.vertices)
+        mover_NPC()
+
+        if (c_col.intrusion(self.npc.vertices, self.c.centroid())):
+            npc_cor = "grey"
+
+        self.player(self.npc, npc_cor)
+
+        self.root.after(15, self._animate)
 
     def _pressed(self, event):
         self.controles[event.char] = True
@@ -118,4 +131,4 @@ class interface:
 ################################################################################
 
 direcao = [0 , 1]
-i = interface(vertices)
+i = interface()
