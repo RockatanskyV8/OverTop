@@ -1,5 +1,7 @@
 import math
 
+################################################################################MOVIMENTO
+
 class Movimento:
 
     def __init__(self, vertices, norte):
@@ -39,30 +41,39 @@ class Movimento:
             new_points.append([x_new + cx, y_new + cy])
         self.vertices = new_points
 
-    def mover(self, x, y):
+    def posicao(self, x, y):
+        center = self.centroid()
         new_vertices = []
-        for coordenada in self.vertices:
-            new_vertices.append([ coordenada[0] + x , coordenada[1] + y ])
+        for coord in self.vertices:
+            new_vertices.append([(coord[0] - center[0]) + x,(coord[1] - center[1]) + y])
         self.vertices = new_vertices
 
-    def orientacao(self, orien):
-        xy           = []
-        new_vertices = []
-        dir          = self.direcao()
-        centro       = self.centroid()
+    def mover(self, x, y):
+        c_x, c_y = self.centroid()
+        self.posicao(c_x + x, c_y + y)
+
+    def orientacao(self):
+        frente = []
+        lado   = []
+        dir    = self.direcao()
+        centro = self.centroid()
         for d in range (0, len(dir)):
-            f = dir[orien][d] - centro[d]
-            if(f != 0):
-                f = f/10
-            xy.append(f)
-        return xy
+            frente_aux = dir[0][d] - centro[d]
+            lado_aux   = dir[1][d] - centro[d]
+            if(frente_aux != 0):
+                frente_aux = frente_aux/10
+            if(lado_aux != 0):
+                lado_aux = lado_aux/10
+            frente.append(frente_aux)
+            lado.append(lado_aux)
+        return {"Frente" : frente, "Lado" : lado}
 
 ################################################################################COL_HANDLER
+
 class COL_HANDLER:
 
-    def __init__(self, vertices, paredes):
+    def __init__(self, vertices):
         self.hitbox  = self.make_hitbox(vertices)
-        self.paredes = paredes
 
     def make_hitbox(self, vert):
         resultado = []
@@ -101,11 +112,22 @@ class COL_HANDLER:
 
         return resultado
 
-    def cenario_hit_detection(self):
+    def hit_detection(self, sol_objects):
         resultado = []
-        for p in self.paredes:
+        for p in sol_objects:
             for lin in self.hitbox:
                 col = self.exists_intersection(lin, p)
                 if col != []:
                     resultado.append(col)
         return resultado
+
+    def intrusion(self, intruder, center):
+        resultado = []
+        for x_obj, y_obj in intruder:
+            x_c, y_c = center
+            if ((x_obj < x_c + 50 and x_obj > x_c - 50) and (y_obj < y_c + 50 and y_obj > y_c - 50)):
+                resultado.append([x_obj, y_obj])
+        if len(resultado) == len(intruder):
+            return True
+        else:
+            return False
